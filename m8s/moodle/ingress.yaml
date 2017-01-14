@@ -1,0 +1,12 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: moodle-ingress
+spec:
+  rules:
+  - host: moodle.local
+    http:
+      paths:
+      - backend:
+          serviceName: moodle
+          servicePort: 80

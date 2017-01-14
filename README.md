@@ -25,37 +25,38 @@ M8s is a Kubernetes deployment tutorial for Moodle.  There is absolutely an inte
 
 ---
 
+<a name="getting-started"></a>
 Getting Started
 ---------------
-<a name="getting-started"></a>
 
 **Don't have Kubernetes?**: I suggest starting with [MiniKube](https://github.com/kubernetes/minikube) to get going.
 
-First and foremost, to get the files mentioned in this tutorial please clone the [docker-moodle](https://github.com/jbkc85/docker-moodle) repository.  As stated before, I plan on moving Moodlenetes to a Helm Chart after I get the initial manifests created.
+First and foremost, to get the files mentioned in this tutorial clone the [tutorial](https://github.com/jbkc85/moodle-kubernetes-tutorial) repository.  As stated before, I plan on moving M8s to a Helm Chart after I get the initial manifests created.
 
 ```sh
 
-$ git clone https://github.com/jbkc85/docker-moodle
-$ cd docker-moodle
+$ git clone https://github.com/jbkc85/moodle-kubernetes-tutorial
+$ cd moodle-kubernetes-tutorial
 
 ```
 
+<a name="proxy"></a>
 Proxy Setup
 -----------
-<a name="proxy"></a>
+
 
 As mentioned before, we will be using [Traefik](traefik.io).  To get traefik setup, you can just run the following command:
 
 ```sh
 
-$ kubectl apply -f moodlenetes/proxy/
+$ kubectl apply -f m8s/proxy/
 
 ```
 
 This will apply a Kubernetes Ingress Provider as well as a WebUI for Traefik.  This is basically taken directly from the [Kubernetes Documentation](https://docs.traefik.io/user-guide/kubernetes/) over at Traefik, so I won't be going too into detail here about it.
 
-* Traefik Ingress: [proxy/traefik.yaml](moodlenetes/proxy/traefik.yaml)
-* Traefik WebUI: [proxy/traefik-webui.yaml](moodlenetes/proxy/traefik-webui.yaml)
+* Traefik Ingress: [proxy/traefik.yaml](m8s/proxy/traefik.yaml)
+* Traefik WebUI: [proxy/traefik-webui.yaml](m8s/proxy/traefik-webui.yaml)
 
 To verify we have our proxy setup (taken directly from the documentation in Traefik mentioned earlier), simply run the following:
 
@@ -81,17 +82,18 @@ $ curl -XGET $(minikube ip)
 
 *Note:* The reason we only create a service and ingress in the ``traefik-webui.yaml`` is because the ``traefik.yaml`` actually starts the WebUI on port 8080 - it just doesn't expose it outside of the internal network.
 
+
+<a name="postgres"></a>
 Postgres Setup
 --------------
-<a name="postgres"></a>
 
-Postgres is another obvious interchangable part of the Moodlenetes setup.  However since the database of Moodle is essential, I will be going a bit more in detail on how to set it up.
+Postgres is another obvious interchangable part of the m8s setup.  However since the database of Moodle is essential, I will be going a bit more in detail on how to set it up.
 
 ### Persistent Volume
 
-The first step is getting a persistent volume setup in Kubernetes.  This is important as if you don't create a persistent volume, the data from Postgres can be potentially lost.
+**File: m8s/postgres/persistent-volume.yaml**
 
-$ cat moodlenetes/postgres/persistent-volume.yaml
+The first step is getting a persistent volume setup in Kubernetes.  This is important as if you don't create a persistent volume, the data from Postgres can be potentially lost.
 
 ```yaml
 
@@ -111,6 +113,14 @@ spec:
        
 ```
 
+Lets go ahead and get the Persistent Volume created:
+
+```sh
+
+$ kubectl apply -f m8s/postgres/persistent-volume.yaml
+
+```
+
 ----
 
 ### Secrets
@@ -122,10 +132,10 @@ If you wish to create your own text files, simply use the following:
 ```sh
 
 # create txt files if you wish
-$ echo -n "your_value" > moodlenetes/postgres/postgres-rootpassword.txt
-$ echo -n "your_value" > moodlenetes/postgres/postgres-database.txt
-$ echo -n "your_value" > moodlenetes/postgres/postgres-user.txt
-$ echo -n "your_value" > moodlenetes/postgres/postgres-password.txt
+$ echo -n "your_value" > m8s/postgres/postgres-rootpassword.txt
+$ echo -n "your_value" > m8s/postgres/postgres-database.txt
+$ echo -n "your_value" > m8s/postgres/postgres-user.txt
+$ echo -n "your_value" > m8s/postgres/postgres-password.txt
 
 ```
 
@@ -135,7 +145,7 @@ Whichever you choose, its now time to upload these secrets.  Once again, to read
 
 ```sh
 
-$ kubectl create secret generic postgres-credentials --from-file=moodlenetes/postgres/postgres-rootpassword.txt --from-file=moodlenetes/postgres/postgres-database.txt --from-file=moodlenetes/postgres/postgres-user.txt --from-file=moodlenetes/postgres/postgres-password.txt
+$ kubectl create secret generic postgres-credentials --from-file=m8s/postgres/postgres-rootpassword.txt --from-file=m8s/postgres/postgres-database.txt --from-file=m8s/postgres/postgres-user.txt --from-file=m8s/postgres/postgres-password.txt
 
 ```
 
@@ -166,9 +176,9 @@ Now we have our secrets, and we can get onto the Deployment!
 
 ### Deployment
 
-The deployment of Postgres in Kubernetes requires a few pieces to operate as we want it to.  Though they all are organized in the same YAML file, I will show each one in detail here.
+**File: m8s/postgres/deployment.yaml**
 
-$ cat moodlenetes/postgres/deployment.yaml
+The deployment of Postgres in Kubernetes requires a few pieces to operate as we want it to.  Though they all are organized in the same YAML file, I will show each one in detail here.
 
 First, we have our a service.  The service allows for communication to the pods under the ``selector`` metadata.  To learn more about services in Kubernetes, simply [read the docs for services](https://kubernetes.io/docs/user-guide/services/).
 
@@ -269,12 +279,11 @@ spec:
                   
 ```
 
-#### TLDR;
+To deploy, simply use the same ``kubectl apply`` command we have been using:
 
 ```sh
 
-$ kubectl create secret generic postgres-credentials --from-file=moodlenetes/postgres/postgres-rootpassword.txt --from-file=moodlenetes/postgres/postgres-database.txt --from-file=moodlenetes/postgres/postgres-user.txt --from-file=moodlenetes/postgres/postgres-password.txt
-$ kubectl apply -f moodlenetes/postgres/
+$ kubectl apply -f m8s/postgres/deployment.yaml
 
 ```
 
@@ -319,7 +328,7 @@ Because we are using a persistent volume on the hostPath, we are going to have t
 
 $ minikube ssh mkdir /tmp/moodledata
 $ minikube ssh sudo chown 33:33 /tmp/moodledata
-$ kubectl apply -f moodlenetes/moodle/persistent-volume.yaml
+$ kubectl apply -f m8s/moodle/persistent-volume.yaml
 
 ```
 
@@ -398,9 +407,9 @@ spec:
 
 ```sh
 
-$ kubectl apply -f moodlenetes/moodle/service.yaml
+$ kubectl apply -f m8s/moodle/service.yaml
 service "moodle" created
-$ kubectl apply -f moodlenetes/moodle/ingress.yaml
+$ kubectl apply -f m8s/moodle/ingress.yaml
 ingress "moodle-ingress" created
 
 ```
@@ -443,7 +452,7 @@ Basically, I am going to take our config.php that we use with Moodle and pump it
 
 ```sh
 
-$ kubectl create configmap moodle-site-config --from-file=moodlenetes/moodle/moodle-config.php
+$ kubectl create configmap moodle-site-config --from-file=m8s/moodle/moodle-config.php
 configmap "moodle-site-config" created
 
 ```
@@ -565,7 +574,7 @@ Lets fire her up!
 
 ```sh
 
-$ kubectl apply -f moodlenetes/moodle/deployment.yaml
+$ kubectl apply -f m8s/moodle/deployment.yaml
 persistentvolumeclaim "moodledata-claim" created
 deployment "moodle" created
 
@@ -597,7 +606,33 @@ Events:
 TLDR
 ----
 
-Coming Soon...
+```sh
+
+$ git clone https://github.com/jbkc85/moodle-kubernetes-tutorial
+$ cd moodle-kubernetes-tutorial
+$ kubectl apply -f m8s/proxy/
+service "traefik-web-ui" created
+ingress "traefik-web-ui" created
+deployment "traefik-ingress-controller" created
+$ kubectl create secret generic postgres-credentials --from-file=m8s/postgres/postgres-rootpassword.txt --from-file=m8s/postgres/postgres-database.txt --from-file=m8s/postgres/postgres-user.txt --from-file=m8s/postgres/postgres-password.txt
+secret "postgres-credentials" created
+$ kubectl apply -f m8s/postgres/
+service "moodle-postgresql" created
+persistentvolumeclaim "postgresql-claim" created
+deployment "moodle-postgresql" created
+persistentvolume "local-postgresql-pv" created
+$ minikube ssh mkdir /tmp/moodledata
+$ minikube ssh sudo chown 33:33 /tmp/moodledata
+$ kubectl create configmap moodle-site-config --from-file=m8s/moodle/moodle-config.php
+configmap "moodle-site-config" created
+$ kubectl apply -f m8s/moodle
+persistentvolumeclaim "moodledata-claim" created
+deployment "moodle" created
+ingress "moodle-ingress" created
+persistentvolume "local-moodledata-pv" created
+service "moodle" created
+
+```
 
 Ending Notes
 -------------

@@ -541,6 +541,21 @@ spec:
       labels:
         app: moodle
         tier: frontend
+      annotations:
+        pod.alpha.kubernetes.io/init-containers: '[
+        {
+            "name": "moodle-init",
+            "image": "alpine:3.5",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["sh", "-c", "chown -R 33:33 /moodledata", ";", "chmod 2775 /moodledata"],
+            "volumeMounts": [
+                {
+                  "name": "moodledata",
+                  "mountPath": "/moodledata"
+                }
+            ]
+        }
+    ]'
     spec:
       containers:
       - image: jbkc85/docker-moodle

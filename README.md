@@ -110,7 +110,7 @@ spec:
     - ReadWriteOnce
   hostPath:
     path: /tmp/postgresql
-       
+
 ```
 
 Lets go ahead and get the Persistent Volume created:
@@ -199,7 +199,7 @@ spec:
     app: moodle
     tier: postgresql
   clusterIP: None
-    
+
 ```
 
 Next, we have to claim our Persistent Volume, which you created in the first step.  In some cases, a Persistent Volume can only have a certain amount of claims.  So, in this particular example we are making our claim!
@@ -220,7 +220,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-            
+
 ```
 
 Finally, we get to the deployment.
@@ -276,7 +276,7 @@ spec:
       - name: postgresql-persistent-storage
         persistentVolumeClaim:
           claimName: postgresql-claim
-                  
+
 ```
 
 To deploy, simply use the same ``kubectl apply`` command we have been using:
@@ -319,7 +319,7 @@ spec:
     - ReadWriteMany
   hostPath:
     path: /tmp/moodledata
-       
+
 ```
 
 Because we are using a persistent volume on the hostPath, we are going to have to create it manually and adjust some permissions to ensure its readable/writable by ``www-data``, our Moodle user.
@@ -348,7 +348,7 @@ Message:
 Source:
     Type:	HostPath (bare host directory volume)
     Path:	/tmp/moodledata
-        
+
 ```
 
 ### Service and Ingress
@@ -373,7 +373,7 @@ spec:
   selector:
     app: moodle
     tier: frontend
-        
+
 ```
 
 > Note: If you want to use SSL, you would still only expose port 80 on this device.  Port 443 would be exposed on the proxy which would be responsible for all SSL transactions while the backend can still simply listen on 80.
@@ -401,7 +401,7 @@ spec:
       - backend:
           serviceName: moodle
           servicePort: 80
-                   
+
 ```
 
 
@@ -483,7 +483,7 @@ data:
     );
 
     $CFG->wwwroot  = 'http://moodle.local';
-    $CFG->dataroot  = '/var/moodledata';
+    $CFG->dataroot  = '/moodle/data';
     $CFG->admin     = 'admin';
 
     $CFG->directorypermissions = 02775;
@@ -501,7 +501,7 @@ metadata:
   resourceVersion: "6087"
   selfLink: /api/v1/namespaces/default/configmaps/moodle-site-config
   uid: 12db3f35-d9a6-11e6-9f63-4217ea3347ce
-    
+
 ```
 
 Great, we should be good to go for the deployment!
@@ -554,9 +554,9 @@ spec:
             memory: 128Mi
         volumeMounts:
         - name: moodledata
-          mountPath: /var/moodledata
+          mountPath: /moodle/data
         - name: config
-          mountPath: /var/moodlecfg
+          mountPath: /moodle/conf
       volumes:
       - name: moodledata
         persistentVolumeClaim:
@@ -567,7 +567,7 @@ spec:
           items:
           - key: moodle-config.php
             path: config.php
-                        
+
 ```
 
 Lets fire her up!
@@ -602,7 +602,7 @@ Events:
 
 ```
 
-<a name='tldr'></a> 
+<a name='tldr'></a>
 TLDR
 ----
 
